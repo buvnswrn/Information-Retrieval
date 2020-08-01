@@ -2,7 +2,7 @@
 Final Project for Statistical Natural Language Processing Course
 ### Tasks
 1. Baseline Document Retreival Model
-   - [ ] Extract text from corpus
+   - [x] Extract text from corpus
    - [ ] Preprocess the texts from corpus and apply tokenisation
    - [ ] Compute idf
    - [ ] Comput tf
