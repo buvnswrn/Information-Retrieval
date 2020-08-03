@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 from nltk.tokenize import RegexpTokenizer
+from collections import Counter
+from math import log
 materials = "materials"
 patterns = materials+"/patterns.txt"
 questions = materials+"/test_questions.txt"
@@ -18,15 +20,14 @@ for docs in all_doc:
     text = docs.find("text")
     p = text.find_all("p")
     content = []
+    content_string = ''
     if not p:
-        content = tokenizer.tokenize(text.contents[0])
+        content_string = text.contents[0]
     else:
-        content_string = ''
         for text in p:
             content_string+=text.contents[0]
-        content = tokenizer.tokenize(content_string)
-    corpus[doc_no.strip()] = content
-
+    corpus[doc_no.strip()] = tokenizer.tokenize(content_string)
+    corpus_string += content_string
 
 # print(corpus['LA010189-0120'])
 vocab = set(tokenizer.tokenize(corpus_string))
@@ -54,4 +55,3 @@ for term in vocab:
 
 # print(idf)
 print(tf)
-
