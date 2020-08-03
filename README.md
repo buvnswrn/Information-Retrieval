@@ -2,10 +2,10 @@
 Final Project for Statistical Natural Language Processing Course
 ### Tasks
 1. Baseline Document Retreival Model
-   - [ ] Extract text from corpus
-   - [ ] Preprocess the texts from corpus and apply tokenisation
-   - [ ] Compute idf
-   - [ ] Comput tf
+   - [x] Extract text from corpus
+   - [x] Preprocess the texts from corpus and apply tokenisation
+   - [x] Compute idf
+   - [x] Comput tf
    - [ ] Give list of query terms as product of term's idf and tf-value
    - [ ] Relavance based on cosine similarity
    - [ ] Sort similarity scores and output top 50 most relevant documents
