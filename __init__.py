@@ -9,7 +9,7 @@ corpus_xml = materials+"/trec_documents.xml"
 corpus = dict()
 idf = dict()
 tf = dict()
-corpus_string = ''
+corpus_string = '' 
 tokenizer = RegexpTokenizer(r'\w+')
 with open(corpus_xml) as infile:
     soup = BeautifulSoup(infile,"lxml")
