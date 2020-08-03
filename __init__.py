@@ -8,6 +8,7 @@ questions = materials+"/test_questions.txt"
 corpus_xml = materials+"/trec_documents.xml"
 corpus = dict()
 idf = dict()
+tf = dict()
 corpus_string = ''
 tokenizer = RegexpTokenizer(r'\w+')
 with open(corpus_xml) as infile:
@@ -29,22 +30,28 @@ for docs in all_doc:
     corpus_string += content_string
 
 # print(corpus['LA010189-0120'])
+vocab = set(tokenizer.tokenize(corpus_string))
+doc_freq = dict()
+for term in vocab:
+    doc_freq[term] = 0
 
 N = len(corpus.keys())
 term_freq = dict()
 for doc in corpus.keys():
     content = corpus[doc]
-    term_freq[doc] = dict(Counter(content).most_common())
-
-vocab = set(tokenizer.tokenize(corpus_string))
-print(vocab)
+    content_counter = Counter(content)
+    most_common = content_counter.most_common()
+    term_freq[doc] = dict(most_common)
+    term_set = set(term_freq[doc].keys())
+    max_freq = most_common[0][1]
+    for term in term_set:
+        doc_freq[term] +=1
+        tf[(term,doc)] = term_freq[doc][term]/max_freq
 
 for term in vocab:
-    term_count = 0
-    for doc_id in corpus.keys():
-        if term in corpus[doc_id]:
-            term_count+=1
-    idf[term] = log(N/term_count)
+    idf[term] = log(N/doc_freq[term])
 
 
-print(idf)
+
+# print(idf)
+print(tf)
