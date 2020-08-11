@@ -13,35 +13,48 @@ from collections import Counter
 import math
 from tqdm import tqdm
 from lxml import etree
+import re
 
 
-# In[23]:
+# In[2]:
 
 
 def retrieval():
     score = {}
     magnitude_doc = {}
     for query in tqdm(queries.keys()):
-        term_freq = queries[query]
+        term_freq_query = queries[query]
         tfidf_query = {}
-        for term in term_freq.keys():
-            tfidf_query[term] = term_freq[term] * idf.get(term, 0)
+        for term in term_freq_query.keys():
+            tfidf_query[term] = term_freq_query[term] * idf.get(term, 0)
         temp = {}
         magnitude_query = math.sqrt(sum([math.pow(tfidf_query[term], 2) for term in tfidf_query.keys()]))
         for doc in corpus.keys():
             similarity = 0
             for term in tfidf_query.keys():
-                tfidf_term_doc = term_frequency.get(term, {}).get(doc, 0) * idf.get(term, 0)
+                tfidf_term_doc = term_frequency.get(doc, {}).get(term, 0) * idf.get(term, 0)
                 similarity += tfidf_term_doc * tfidf_query[term]
             if doc not in magnitude_doc.keys():
                 magnitude = 0
-                for term in corpus[doc].keys():
-                    magnitude += math.pow(term_frequency[term][doc] * idf[term], 2)
+                for term in term_frequency[doc].keys():
+                    magnitude += math.pow(term_frequency[doc][term] * idf[term], 2)
                 magnitude_doc[doc] = math.sqrt(magnitude)
 
             temp[doc] = similarity / (magnitude_doc[doc] * magnitude_query)
         score[query] = temp
     return score
+
+
+def precision():
+    precision_50 = {}
+    for query in tqdm(score.keys()):
+        num_relevant = 0
+        for doc, _ in score[query]:
+            if any(re.search(regex, corpus_raw[doc], re.IGNORECASE) for regex in query_answer[query]):
+                num_relevant += 1
+        # print('number of relevant docs for query {} are {}'.format(query,num_relevant))
+        precision_50[query] = num_relevant / 50
+    return precision_50
 
 
 # In[3]:
@@ -65,18 +78,22 @@ for doc in root:
 
         corpus[doc.find('DOCNO').text.strip()] = text.strip()
 
+corpus_raw = corpus.copy()
+
 # In[4]:
 
 
 tokenizer = RegexpTokenizer(r'\w+')
 table = str.maketrans('', '', '!\"#$%&\'()*+,./:;<=>?@[\]^_`{|}~')
 corpus_combined = []
+term_frequency = {}
 for doc in tqdm(corpus.keys()):
     corpus[doc] = corpus[doc].lower().translate(table)
     corpus[doc] = tokenizer.tokenize(corpus[doc])
     corpus_combined += corpus[doc]
+    # corpus_raw[doc] = ' '.join(corpus[doc])
     temp = Counter(corpus[doc])
-    corpus[doc] = {key: temp[key] / temp.most_common(1)[0][1] for key in temp}
+    term_frequency[doc] = {key: temp[key] / temp.most_common(1)[0][1] for key in temp}
 
 # In[5]:
 
@@ -84,17 +101,16 @@ for doc in tqdm(corpus.keys()):
 vocab = set(corpus_combined)
 Total_docs = len(corpus.keys())
 idf = {}
-term_frequency = {}
-tfidf_doc = {}
+# term_frequency = {}
 for term in tqdm(vocab):
     count_term = 0
-    temp = {}
+
     for doc in corpus.keys():
-        if term in corpus[doc]:
+        if term in term_frequency[doc]:
             count_term += 1
-        temp[doc] = corpus[doc].get(term, 0)
+        # temp[doc] = corpus[doc].get(term,0)
     idf[term] = math.log(Total_docs / count_term)
-    term_frequency[term] = temp
+    # term_frequency[term] = temp
 
 # In[6]:
 
@@ -114,15 +130,45 @@ for num, query in zip(list(range(1, 101)), root.find('body')):
     temp = Counter(text)
     queries[num] = {key: temp[key] / temp.most_common(1)[0][1] for key in temp}
 
-# In[26]:
+# In[7]:
 
 
 score = retrieval()
 
-# In[28]:
+# In[8]:
 
 
-print(score[100])
+for key in score.keys():
+    score[key] = sorted(score[key].items(), key=lambda x: x[1], reverse=True)[:50]
+print(score[1])
+
+# In[9]:
+
+
+with open('patterns.txt', 'r') as f:
+    file = f.read()
+# file = file.lower()
+file = file.split('\n')
+
+query_answer = {}
+
+for line in file:
+    if query_answer.get(int(line.split()[0])) == None:
+        query_answer[int(line.split()[0])] = [' '.join(line.split()[1:])]
+    else:
+        query_answer[int(line.split()[0])].append(' '.join(line.split()[1:]))
+
+# In[10]:
+
+
+precision_50 = precision()
+print(precision_50)
+print('Mean Avg Precision is {}'.format(sum(list(precision_50.values())) / len(list(precision_50.values()))))
+
+# In[11]:
+
+
+print(len([value for value in list(precision_50.values()) if value != 0]))
 
 # In[ ]:
 
