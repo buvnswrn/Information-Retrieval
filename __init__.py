@@ -23,7 +23,7 @@ queries = dict()
 max_freq = dict()
 retrieved_docs = dict()
 unprocessed_corpus = dict()
-relavant_docs = dict()
+relevant_docs = dict()
 corpus_string = '' 
 tokenizer = RegexpTokenizer(r'\w+')
 stemmer = PorterStemmer()
@@ -207,7 +207,7 @@ def get_docs_from_pattern(unprocessed_corpus):
                     relevant_docs[q_no] = [doc_ids]
     return relevant_docs
 
-relavant_docs = get_docs_from_pattern(unprocessed_corpus)
+relevant_docs = get_docs_from_pattern(unprocessed_corpus)
 
     
 
@@ -220,5 +220,12 @@ relavant_docs = get_docs_from_pattern(unprocessed_corpus)
 # print(len(relavant_docs))
 
 # In[7]:
-
+def count_relevant_retrieved(relevant_docs,retrieved_docs):
+    relevant_retrieved = dict()
+    for q_no in retrieved_docs.keys():
+        if(retrieved_docs[q_no] in relevant_docs[q_no]):
+            if q_no in relevant_retrieved:
+                relevant_retrieved+=1
+            else:
+                relevant_retrieved = 1
 # %%
