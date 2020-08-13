@@ -5,7 +5,7 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
 from math import log
-from numba import jit
+# from numba import jit
 import re
 materials = "materials"
 patterns_file = materials+"/patterns.txt"
@@ -26,7 +26,7 @@ unprocessed_corpus = dict()
 relevant_docs = dict()
 corpus_string = '' 
 tokenizer = RegexpTokenizer(r'\w+')
-stemmer = PorterStemmer()
+# stemmer = PorterStemmer()
 stop_words = stopwords.words("english")
 # Reading file and converting to soup
 with open(corpus_xml) as infile:
@@ -40,7 +40,8 @@ all_query = q_soup.find_all('top')
 for query in all_query:
     desc = query.find("desc").contents[0].split('\n')[1]
     num = query.find("num").contents[0].split()[1]
-    queries[int(num)] = [stemmer.stem(word) for word in tokenizer.tokenize(desc) if word not in stop_words]
+    # queries[int(num)] = [stemmer.stem(word) for word in tokenizer.tokenize(desc) if word not in stop_words]
+    queries[int(num)] = [word for word in tokenizer.tokenize(desc) if word not in stop_words]
 # print(queries)
 
 #In[2]:
@@ -57,13 +58,15 @@ for docs in all_doc:
         for text in p:
             content_string+=text.contents[0]
     unprocessed_corpus[doc_no.strip()] = content_string
-    corpus[doc_no.strip()] = [stemmer.stem(word) for word in tokenizer.tokenize(content_string) if word not in stop_words]
+    # corpus[doc_no.strip()] = [stemmer.stem(word) for word in tokenizer.tokenize(content_string) if word not in stop_words]
+    corpus[doc_no.strip()] = [word for word in tokenizer.tokenize(content_string) if word not in stop_words]
     doc_ids.append(doc_no.strip())
     corpus_string += content_string
 
 # Setting up vocabulary
 # print(corpus['LA010189-0120'])
-vocab = set([stemmer.stem(word) for word in tokenizer.tokenize(corpus_string) if word not in stop_words])
+# vocab = set([stemmer.stem(word) for word in tokenizer.tokenize(corpus_string) if word not in stop_words])
+vocab = set([word for word in tokenizer.tokenize(corpus_string) if word not in stop_words])
 doc_freq = dict()
 for term in vocab:
     doc_freq[term] = 0
@@ -135,8 +138,8 @@ print(q_tf_idf)
 # print(tf_idf)
 
 # In[3]:
-# print(tf_idf)
-# print(q_tf_idf)
+print(tf_idf)
+print(q_tf_idf)
 # In[4]:
 # Calculating cosine values
 def cosine_similarity(queries,doc_ids,vocab,term_freq,q_tf_idf,tf_idf):
@@ -163,7 +166,7 @@ def cosine_similarity(queries,doc_ids,vocab,term_freq,q_tf_idf,tf_idf):
             for i in range(len(doc_query_vector)):
                 c+=doc_vector[i]*query_vector[i]
             cosine[(q_no,doc_id)] = c/float((sum(doc_vector)*sum(query_vector))**0.5)
-        return cosine
+    return cosine
 cosine = cosine_similarity(queries,doc_ids,vocab,term_freq,q_tf_idf,tf_idf)
 
 # In[5]:
@@ -186,25 +189,25 @@ def get_docs_from_pattern(unprocessed_corpus):
             line = line.split()
         # while line:
             pattern = ''
-            q_no = line[0].strip()
+            q_no = int(line[0].strip())
             if len(line)>2:
                 pattern = ' '.join(line[1:])
             else:
                 pattern = line[1]
             if(q_no in patterns):
-                patterns[q_no] = patterns[q_no]+"|"+pattern
+                patterns[q_no].append(pattern)
             else:
-                patterns[q_no] = pattern
+                patterns[q_no] = [pattern]
             line = patfile.readline
     for q_no in patterns.keys():
-        regex = re.compile("("+patterns[q_no]+")")
+        # regex = re.compile("("+patterns[q_no]+")")
         for doc_id in unprocessed_corpus.keys():
             string = unprocessed_corpus[doc_id]
-            if(regex.search(string)!=None):
+            if any(re.search(regex,string,re.IGNORECASE) for regex in patterns[q_no]):
                 if q_no in relevant_docs:
                     relevant_docs[q_no].append(doc_id)
                 else:
-                    relevant_docs[q_no] = [doc_ids]
+                    relevant_docs[q_no] = [doc_id]
     return relevant_docs
 
 relevant_docs = get_docs_from_pattern(unprocessed_corpus)
@@ -212,20 +215,42 @@ relevant_docs = get_docs_from_pattern(unprocessed_corpus)
     
 
 # %%
-# print(relavant_docs)
-# print(["{0}:{1}".format(q_no,len(relavant_docs[q_no])) for q_no in relavant_docs.keys()])
+print(relevant_docs)
+print(["{0}:{1}".format(q_no,len(relevant_docs[q_no])) for q_no in relevant_docs.keys()])
 
 
 # %%
 # print(len(relavant_docs))
 
 # In[7]:
-def count_relevant_retrieved(relevant_docs,retrieved_docs):
+def count_relevant_retrieved(relevant_docs,retrieved_docs,rank):
     relevant_retrieved = dict()
     for q_no in retrieved_docs.keys():
-        if(retrieved_docs[q_no] in relevant_docs[q_no]):
-            if q_no in relevant_retrieved:
-                relevant_retrieved+=1
-            else:
-                relevant_retrieved = 1
+        if(q_no in relevant_docs.keys()):
+            retrieved = [doc_id for doc_id,score in retrieved_docs[q_no]]
+            for doc in relevant_docs[q_no][:rank]:
+                relevant_retrieved[q_no]= relevant_retrieved.get(q_no,0)+1
+            # if(retrieved in relevant_docs[q_no]):
+            #         relevant_retrieved[q_no]= relevant_retrieved.get(q_no,0)+1
+        else:
+            relevant_retrieved[q_no] = 0
+    return relevant_retrieved
+rank = 50
+relevant_retrieved = count_relevant_retrieved(relevant_docs,retrieved_docs,rank)
+# In[8];
+def cal_precision(retrieved_docs,rank):
+    precision = dict()
+    for q_no in retrieved_docs.keys():
+        precision[q_no] = relevant_retrieved[q_no]/rank
+    return precision
+
+precision = cal_precision(retrieved_docs,rank)
+
+print('Mean Average Precision: {}'.format(sum(list(precision.values()))/len(list(precision.values()))))
+
+
+
+# %%
+print(retrieved_docs)
+
 # %%
