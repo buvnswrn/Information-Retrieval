@@ -1,4 +1,4 @@
-# snlp-final-project
+# Information Retrieval Model
 Final Project for Statistical Natural Language Processing Course
 ### Tasks
 1. Baseline Document Retreival Model
